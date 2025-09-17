@@ -3,7 +3,7 @@ This repository contains the codes used in our paper "North-South asymmetry in s
 - TGDM.py : Implement the Temporal Gap Detection Method (van Oostende et al. 2022)
 
 
-**References**
+### References
 van Oostende, M., Hieronymi, M., Krasemann, H., Baschek, B. & Röttgers, R. Correction of inter-mission inconsistencies in merged ocean colour satellite data. Front. Remote Sens. 3, (2022). 
 
 
