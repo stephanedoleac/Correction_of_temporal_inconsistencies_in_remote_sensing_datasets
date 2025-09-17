@@ -3,12 +3,14 @@ This repository contains the codes used in our paper "North-South asymmetry in s
 - TGDM.py : Implement the Temporal Gap Detection Method (van Oostende et al. 2022)
 - correction_calibration_inconsistencies.py : Correct the calibration inconsistencies based on SeaWiFS and MODIS-AQUA time series
 
+The corrected datasets analysed in the study are available at https://doi.org/10.5281/zenodo.17122287
+
 ### Usage of TGDM.py
 ```
 from TGDM import TGDMProcessor
 
 # Initialize processor
-tgdm = TGDMProcessor("input.nc", "precip", window=31)
+tgdm = TGDMProcessor("input.nc", "precip", window=27)
 
 # Apply TGDM and get corrected DataArray
 corrected_da = tgdm.apply_tgdm()
