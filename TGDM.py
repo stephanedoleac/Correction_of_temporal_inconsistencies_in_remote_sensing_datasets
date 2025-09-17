@@ -18,7 +18,7 @@ class TGDMProcessor:
         Window size (in days) for TGDM moving-window computation.
     """
 
-    def __init__(self, input_nc, varname, window=31):
+    def __init__(self, input_nc, varname, window=27):
         """
         Initialize the TGDM processor.
 
@@ -29,7 +29,7 @@ class TGDMProcessor:
         varname : str
             Name of the variable to apply TGDM.
         window : int, optional
-            Window size in days (default is 31).
+            Window size in days (default is 27).
         """
         # Load dataset
         if isinstance(input_nc, xr.Dataset):
