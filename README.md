@@ -10,7 +10,7 @@ The corrected datasets analysed in the study are available at https://doi.org/10
 from TGDM import TGDMProcessor
 
 # Initialize processor
-tgdm = TGDMProcessor("input.nc", "precip", window=27)
+tgdm = TGDMProcessor("input.nc", "varname", window=27)
 
 # Apply TGDM and get corrected DataArray
 corrected_da = tgdm.apply_tgdm()
