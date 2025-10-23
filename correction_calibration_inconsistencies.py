@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 import numpy as np
 import xarray as xr
 from tqdm import tqdm
