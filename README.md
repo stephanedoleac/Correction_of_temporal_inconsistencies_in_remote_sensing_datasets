@@ -70,4 +70,9 @@ TGDM.py and correction_calibration_inconsistencies.py both take a few minutes to
 # References
 van Oostende, M., Hieronymi, M., Krasemann, H., Baschek, B. & Röttgers, R. Correction of inter-mission inconsistencies in merged ocean colour satellite data. Front. Remote Sens. 3, (2022). 
 
+# License
+
+This software is released under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
