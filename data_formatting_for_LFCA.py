@@ -1,4 +1,4 @@
-
+# SPDX-License-Identifier: MIT
 
                             # -------------------------------------- #
                             #   Formatting data before performing    #
