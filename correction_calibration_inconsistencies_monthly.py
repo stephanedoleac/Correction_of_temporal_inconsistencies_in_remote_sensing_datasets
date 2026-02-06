@@ -6,8 +6,7 @@ from tqdm import tqdm
 import netCDF4 as nc
 from pathlib import Path
 
-
-class BiasCorrector:
+class BiasCorrector_monthly:
     def __init__(self, width=5):
         """
         Initialize the BiasCorrector.
@@ -103,6 +102,9 @@ class BiasCorrector:
         ndarray (lat, lon)
             Bias field (relative changes between merged and SeaWiFS).
         """
+
+        print("Compute bias from SeaWiFS...")
+
         # Restrict to SeaWiFS period (1998–2010)
         data_period = data_merged[0 : 13 * 12, :, :]
         mask_commun = np.abs(np.sign(data_period)) * np.abs(np.sign(data_SeaWiFS))
@@ -111,10 +113,11 @@ class BiasCorrector:
         data_masked = data_period * mask_commun
         data_SeaWiFS_masked = data_SeaWiFS * mask_commun
 
-        # Two reference periods: early vs later SeaWiFS
+        # Two reference periods: 1998-2001 and 2003-2010
         reference_periods = np.array([[0, 4 * 12], [5 * 12, 13 * 12]])
         change_medianes_data = np.empty(np.shape(data_masked[0, :, :]))
         change_medianes_SeaWiFS = np.empty(np.shape(data_masked[0, :, :]))
+        reference_medianes_data = np.empty(np.shape(data_masked[0, :, :]))
 
         # Compute relative median change for each grid cell
         for i in tqdm(range(np.shape(data_masked)[1])):
@@ -126,6 +129,8 @@ class BiasCorrector:
                     - np.nanmedian(local_mean[reference_periods[0, 0]:reference_periods[0, 1]])
                 ) / np.nanmedian(local_mean[reference_periods[0, 0]:reference_periods[0, 1]])
 
+                reference_medianes_data[i, j] = np.nanmedian(local_mean[reference_periods[0, 0]:reference_periods[0, 1]])
+
                 # For SeaWiFS
                 local_mean = self.get_local_mean(data_SeaWiFS_masked, i, j, lat)
                 change_medianes_SeaWiFS[i, j] = (
@@ -133,9 +138,10 @@ class BiasCorrector:
                     - np.nanmedian(local_mean[reference_periods[0, 0]:reference_periods[0, 1]])
                 ) / np.nanmedian(local_mean[reference_periods[0, 0]:reference_periods[0, 1]])
 
-        return change_medianes_data - change_medianes_SeaWiFS
+        return (change_medianes_data - change_medianes_SeaWiFS)*reference_medianes_data
 
-    def compute_bias_from_MODIS(self, data_merged, data_MODIS, merged_path, lat):
+
+    def compute_bias_from_MODIS(self, data_merged, data_MODIS, lat):
         """
         Compute the bias field by comparing merged dataset with MODIS reference.
 
@@ -145,33 +151,32 @@ class BiasCorrector:
             Merged dataset.
         data_MODIS : ndarray (time, lat, lon)
             MODIS reference dataset.
-        merged_path : Path
-            Used to infer product type (affects reference periods).
         lat : ndarray
             Latitude array.
 
         Returns
         -------
-        ndarray (2, lat, lon)
+        ndarray (lat, lon)
             Bias field (two steps of change detected with MODIS).
         """
-        product = Path(merged_path).parent.name
 
-        # MODIS overlap period (2002–2022)
-        data_period = data_merged[5 * 12 : 25 * 12, :, :]
-        mask_commun = np.abs(np.sign(data_period)) * np.abs(np.sign(data_MODIS))
+        print("Compute bias from MODIS...")
+
+        # MODIS overlap period (2002–06/2021)
+        data_period = data_merged[5 * 12 : 23 * 12 + 6, :, :]
+        data_MODIS_period = data_MODIS[0 : 18 * 12 + 6, :, :]
+        mask_commun = np.abs(np.sign(data_period)) * np.abs(np.sign(data_MODIS_period))
 
         data_masked = data_period * mask_commun
-        data_MODIS_masked = data_MODIS * mask_commun
+        data_MODIS_masked = data_MODIS_period * mask_commun
 
-        # Reference periods depend on product type
-        if product == "Yu2023_v1.0":
-            reference_periods = np.array([[0, 8 * 12], [10 * 12, 13 * 12], [18 * 12, 21 * 12]])
-        else:
-            reference_periods = np.array([[0, 8 * 12], [10 * 12, 13 * 12], [16 * 12, 21 * 12]])
+        # Three reference periods : 2003-2010, 2013-2015 and 2019-06/2021
+        reference_periods = np.array([[0, 8 * 12], [10 * 12, 13 * 12], [16 * 12, 18*12 + 12]])
 
         change_medianes_data = np.empty(np.concatenate([[2], np.shape(data_masked[0, :, :])]))
         change_medianes_MODIS = np.empty(np.concatenate([[2], np.shape(data_masked[0, :, :])]))
+
+        reference_medianes_data = np.empty(np.concatenate([[2], np.shape(data_masked[0, :, :])]))
 
         # Compute relative median changes for each grid cell (two steps)
         for i in tqdm(range(np.shape(data_masked)[1])):
@@ -187,6 +192,9 @@ class BiasCorrector:
                     - np.nanmedian(local_mean[reference_periods[1, 0]:reference_periods[1, 1]])
                 ) / np.nanmedian(local_mean[reference_periods[1, 0]:reference_periods[1, 1]])
 
+                reference_medianes_data[0, i, j] = np.nanmedian(local_mean[reference_periods[0, 0]:reference_periods[0, 1]])
+                reference_medianes_data[1, i, j] = np.nanmedian(local_mean[reference_periods[1, 0]:reference_periods[1, 1]])
+
                 # For MODIS
                 local_mean = self.get_local_mean(data_MODIS_masked, i, j, lat)
                 change_medianes_MODIS[0, i, j] = (
@@ -198,9 +206,10 @@ class BiasCorrector:
                     - np.nanmedian(local_mean[reference_periods[1, 0]:reference_periods[1, 1]])
                 ) / np.nanmedian(local_mean[reference_periods[1, 0]:reference_periods[1, 1]])
 
-        return change_medianes_data - change_medianes_MODIS
+        return (change_medianes_data - change_medianes_MODIS)*reference_medianes_data
 
-    def make_total_bias(self, bias_seawifs, bias_modis, merged_path, length):
+
+    def make_total_bias(self, bias_seawifs, bias_modis, length):
         """
         Construct a continuous time series of total bias from SeaWiFS and MODIS contributions.
 
@@ -208,10 +217,8 @@ class BiasCorrector:
         ----------
         bias_seawifs : float
             Bias derived from SeaWiFS.
-        bias_modis : ndarray (2,)
-            Two-step bias derived from MODIS.
-        merged_path : Path
-            Used to infer product type (affects bias application dates).
+        bias_modis : float
+            Bias derived from MODIS.
         length : int
             Total length of the time series.
 
@@ -220,13 +227,9 @@ class BiasCorrector:
         ndarray (length,)
             Time series of bias to subtract from the merged dataset.
         """
-        product = Path(merged_path).parent.name
 
-        # Bias application dates depend on product
-        if product == "Yu2023_v1.0":
-            date_biases = [4 * 12 + 6, 14 * 12, 20 * 12 + 6]
-        else:
-            date_biases = [4 * 12 + 6, 14 * 12, 19 * 12 + 6]
+        # Bias application dates in the middle of inter-reference periods
+        date_biases = [4 * 12 + 6, 14 * 12, 19 * 12 + 6]
 
         # Build total bias stepwise
         total_bias = np.concatenate(
@@ -241,7 +244,7 @@ class BiasCorrector:
 
     def correct_dataset(self, merged_path, modis_path, seawifs_path, output_path):
         """
-        Apply bias correction to a merged dataset using SeaWiFS and MODIS.
+        Apply bias correction to a merged dataset using SeaWiFS, MODIS and VIIRS.
 
         Parameters
         ----------
@@ -259,32 +262,32 @@ class BiasCorrector:
         data_merged = dataset_merged.CHL.data
 
         dataset = xr.open_dataset(modis_path)
-        data_modis = dataset.chlor_a.isel(lat=slice(None, None, -1), time=slice(5, 21 * 12 - 7)).data
+        data_modis = dataset.CHL.data
 
         dataset = xr.open_dataset(seawifs_path)
-        data_seawifs = dataset.CHL.isel(lat=slice(None, None, -1)).data
+        data_seawifs = dataset.CHL.data
 
         lat = dataset_merged.lat.data
         lon = dataset_merged.lon.data
 
         # Compute biases
         biases_SeaWiFS = self.compute_bias_from_SeaWiFS(data_merged, data_seawifs, lat)
-        biases_MODIS = self.compute_bias_from_MODIS(data_merged, data_modis, merged_path, lat)
+        biases_MODIS = self.compute_bias_from_MODIS(data_merged, data_modis, lat)
 
         # Apply correction
         data_debiased = np.empty(np.shape(data_merged)) * np.nan
         mask_ocean_case1 = ~np.isnan(np.nanmean(data_merged, axis=0))  # Mask land
 
+        print("Correct merged dataset...")
+
         for i in tqdm(range(len(lat))):
             for j in range(len(lon)):
                 if mask_ocean_case1[i, j]:
                     total_bias = self.make_total_bias(
-                        biases_SeaWiFS[i, j], biases_MODIS[:, i, j], merged_path, len(data_merged[:, 0, 0])
+                        biases_SeaWiFS[i, j], biases_MODIS[:, i, j], len(data_merged[:, 0, 0])
                     )
                     # Subtract bias scaled by local median
-                    data_debiased[:, i, j] = data_merged[:, i, j] - total_bias * np.nanmedian(
-                        data_merged[:, i, j]
-                    )
+                    data_debiased[:, i, j] = data_merged[:, i, j] - total_bias
 
         # Save corrected dataset
         nc_file = xr.Dataset(
